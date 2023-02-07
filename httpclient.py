@@ -49,7 +49,6 @@ class HTTPClient(object):
         return (host, port)
 
 
-
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
@@ -58,7 +57,7 @@ class HTTPClient(object):
     def get_code(self, data):
         return None
 
-    def get_headers(self,data):
+    def get_headers(self, data):
         return None
 
     def get_body(self, data):
@@ -86,7 +85,18 @@ class HTTPClient(object):
         code = 500
         body = "empty body"
         host, port = self.get_host_port(url)
-        print(host, port)
+        self.connect(host, port)
+        request = "GET / HTTP/1.1\r\n"
+        request += "Host: {}:{}\r\n".format(host, port)
+        request += "User-Agent: http-client/1.0\r\n"
+        request += "Accept: */*\r\n"
+        request += "\r\n"
+        print(request)
+        self.sendall(request)
+        data = self.recvall(self.socket)
+        print(data)
+        self.close()
+        # print(host, port)
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
@@ -108,7 +118,7 @@ if __name__ == "__main__":
         sys.exit(1)
     elif (len(sys.argv) == 3):
         response = client.command( sys.argv[2], sys.argv[1] )
-        print(response.code, response.body)
+        # print(response.code, response.body)
     else:
         response = client.command( sys.argv[1] )
-        print(response.code, response.body)
+        # print(response.code, response.body)
