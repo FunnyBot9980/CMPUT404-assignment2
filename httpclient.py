@@ -66,7 +66,6 @@ class HTTPResponse(object):
         self.body = body
 
 class HTTPClient(object):
-
     def get_host_port(self, url):
         parsed_url = urlparse(url)
 
@@ -112,9 +111,35 @@ class HTTPClient(object):
         #         buffer.extend(part)
         #     else:
         #         done = not part
-        # part = sock.recv(1024)
-        part = sock.recv(4048)
-        buffer.extend(part)
+        # buffer = sock.recv(2048)
+        # part = sock.recv(2048)
+        # print(len(part.decode('utf-8').split('\r\n\r\n')[0].encode('utf-8')))
+        # print(len(part.decode('utf-8').split('\r\n\r\n')[1].encode('utf-8')))
+        # headers = b''
+        # header_buffer = 0
+        # while True:
+        #     data = sock.recv(1024)
+        #     if not data:
+        #         raise Exception("no data received")
+        #     headers += data
+        #     if b'\r\n\r\n' in headers:
+        #         headers = headers.decode('utf-8').split('\r\n\r\n')[0]
+        #         break
+        # headers = headers.split('\r\n')
+        # headers_dict = {}
+        # for line in range(1, len(headers)):
+        #     parts = headers[line].split(':', 1)
+        #     headers_dict[parts[0]] = parts[1].strip()
+        # print(headers_dict)
+        data = b''
+        while b'\r\n\r\n' not in data:
+            data += sock.recv(1)
+        print(data.decode('utf-8')
+        print("end of headers")
+        data = sock.recv(2048)
+        print(data.decode('utf-8'))
+        # part = sock.recv(4048)
+        # buffer.extend(part)
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
@@ -129,7 +154,7 @@ class HTTPClient(object):
         print(request)
         self.sendall(request)
         data = self.recvall(self.socket)
-        print(data)
+        # print(data)
         self.close()
         return HTTPResponse(code, body)
 
