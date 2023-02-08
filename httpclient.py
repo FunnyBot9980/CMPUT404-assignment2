@@ -18,6 +18,13 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
+# try these for testing:
+# curl -v -X GET http://127.0.0.1:8080/
+# py httpclient.py GET http://127.0.0.1:8080/
+# py httpclient.py GET http://www.example.com/
+# curl -v -X GET http://www.example.com/
+
+
 import sys
 import socket
 import re
@@ -54,7 +61,7 @@ class HTTPRequest(object):
 
 
 class HTTPResponse(object):
-    def __init__(self, code=200, body=""):
+    def __init__(self, code=200, headers="", body=""):
         self.code = code
         self.body = body
 
@@ -98,13 +105,16 @@ class HTTPClient(object):
     # read everything from the socket
     def recvall(self, sock):
         buffer = bytearray()
-        done = False
-        while not done:
-            part = sock.recv(1024)
-            if (part):
-                buffer.extend(part)
-            else:
-                done = not part
+        # done = False
+        # while not done:
+        #     part = sock.recv(1024)
+        #     if (part):
+        #         buffer.extend(part)
+        #     else:
+        #         done = not part
+        # part = sock.recv(1024)
+        part = sock.recv(4048)
+        buffer.extend(part)
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
