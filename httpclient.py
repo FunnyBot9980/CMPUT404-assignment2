@@ -24,8 +24,34 @@ import re
 # you may use urllib to encode data appropriately
 from urllib.parse import urlparse
 
+USER_AGENT = 'mini-curl/1.0'
+HTTP_VERSION = 'HTTP/1.1'
+
 def help():
     print("httpclient.py [GET/POST] [URL]\n")
+
+class HTTPRequest(object):
+    def __init__(self, ip, host, port, method="GET", path="/", accept="*/*", body=""):
+        self.method = method
+        self.path = path
+        self.ip = ip
+        self.host = host
+        self.port = port
+        self.accept = accept
+        self.body = body
+
+    def request_to_str(self):
+        request = "{} {} {}\r\n".format(self.method, self.path, HTTP_VERSION)
+        if self.ip != self.host:
+            request += "Host: {}\r\n".format(self.host) 
+        else:
+            request += "Host: {}:{}\r\n".format(self.ip, self.port) 
+        request += "User-Agent: {}\r\n".format(USER_AGENT)
+        request += "Accept: {}\r\n".format(self.accept)
+        request += "\r\n"
+        request += self.body
+        return request
+
 
 class HTTPResponse(object):
     def __init__(self, code=200, body=""):
@@ -41,12 +67,12 @@ class HTTPClient(object):
             raise ValueError("Client cannot handle any scheme other than http")
 
         host = parsed_url.hostname
-
+        ip = socket.gethostbyname(host)
         if parsed_url.port == None:
             port = 80
         else:
             port = parsed_url.port
-        return (host, port)
+        return (host, ip, port)
 
 
     def connect(self, host, port):
@@ -84,19 +110,17 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = "empty body"
-        host, port = self.get_host_port(url)
-        self.connect(host, port)
-        request = "GET / HTTP/1.1\r\n"
-        request += "Host: {}:{}\r\n".format(host, port)
-        request += "User-Agent: http-client/1.0\r\n"
-        request += "Accept: */*\r\n"
-        request += "\r\n"
+
+        host, ip, port = self.get_host_port(url)
+        self.connect(ip, port)
+
+        request = HTTPRequest(ip, host, port)
+        request = request.request_to_str()
         print(request)
         self.sendall(request)
         data = self.recvall(self.socket)
         print(data)
         self.close()
-        # print(host, port)
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
