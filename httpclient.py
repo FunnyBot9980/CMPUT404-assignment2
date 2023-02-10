@@ -33,12 +33,18 @@ from urllib.parse import urlparse
 
 USER_AGENT = 'mini-curl/1.0'
 HTTP_VERSION = 'HTTP/1.1'
+codes = {
+        200: 'Ok',
+        404: 'Not Found',
+        }
 
 def help():
     print("httpclient.py [GET/POST] [URL]\n")
 
+
+
 class HTTPRequest(object):
-    def __init__(self, ip, host, port, method="GET", path="/", accept="*/*", body=""):
+    def __init__(self, ip, host, port, method="GET", path="/", accept="text/html", body=""):
         self.method = method
         self.path = path
         self.ip = ip
@@ -46,6 +52,7 @@ class HTTPRequest(object):
         self.port = port
         self.accept = accept
         self.body = body
+
 
     def request_to_str(self):
         request = "{} {} {}\r\n".format(self.method, self.path, HTTP_VERSION)
@@ -60,10 +67,14 @@ class HTTPRequest(object):
         return request
 
 
+
 class HTTPResponse(object):
-    def __init__(self, code=200, headers="", body=""):
+    def __init__(self, code=200, headers_dict="", headers="", body=""):
         self.code = code
+        self.headers = headers
+        self.headers_dict = headers_dict
         self.body = body
+
 
 class HTTPClient(object):
     def get_host_port(self, url):
@@ -86,61 +97,70 @@ class HTTPClient(object):
         self.socket.connect((host, port))
         return None
 
-    def get_code(self, data):
-        return None
 
-    def get_headers(self, data):
-        return None
+    def parse_headers(self, headers_data):
+        headers = headers_data.decode('utf-8')
+        headers = headers.split('\r\n')
+        headers_dict = {}
+        for line in range(1, len(headers)):
+            if headers[line] != '':
+                parts = headers[line].split(':', 1)
+                headers_dict[parts[0]] = parts[1].strip()
+        statusline = headers[0].split()
+        return (statusline, headers_dict)
 
-    def get_body(self, data):
-        return None
-    
+
+    def get_body(self, sock, content_length):
+        if content_length != None:
+            recv_buffer = 1024
+            while content_length > recv_buffer:
+                recv_buffer += 1024
+            body = sock.recv(recv_buffer)
+        else:
+            body = bytearray()
+            sock.settimeout(15)
+            while True:
+                try:
+                    part = sock.recv(1024)
+                    if not part:
+                        break
+                    body.extend(part)
+                except socket.timeout:
+                    break
+        return body.decode('utf-8')
+
+
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
-        
+
+
     def close(self):
         self.socket.close()
 
+
     # read everything from the socket
     def recvall(self, sock):
-        buffer = bytearray()
-        # done = False
-        # while not done:
-        #     part = sock.recv(1024)
-        #     if (part):
-        #         buffer.extend(part)
-        #     else:
-        #         done = not part
-        # buffer = sock.recv(2048)
-        # part = sock.recv(2048)
-        # print(len(part.decode('utf-8').split('\r\n\r\n')[0].encode('utf-8')))
-        # print(len(part.decode('utf-8').split('\r\n\r\n')[1].encode('utf-8')))
-        # headers = b''
-        # header_buffer = 0
-        # while True:
-        #     data = sock.recv(1024)
-        #     if not data:
-        #         raise Exception("no data received")
-        #     headers += data
-        #     if b'\r\n\r\n' in headers:
-        #         headers = headers.decode('utf-8').split('\r\n\r\n')[0]
-        #         break
-        # headers = headers.split('\r\n')
-        # headers_dict = {}
-        # for line in range(1, len(headers)):
-        #     parts = headers[line].split(':', 1)
-        #     headers_dict[parts[0]] = parts[1].strip()
-        # print(headers_dict)
-        data = b''
-        while b'\r\n\r\n' not in data:
-            data += sock.recv(1)
-        print(data.decode('utf-8')
-        print("end of headers")
-        data = sock.recv(2048)
-        print(data.decode('utf-8'))
-        # part = sock.recv(4048)
-        # buffer.extend(part)
-        return buffer.decode('utf-8')
+        response = HTTPResponse()
+        headers = b''
+        while b'\r\n\r\n' not in headers:
+            headers += sock.recv(1)
+        parsed_headers = self.parse_headers(headers)
+        statusline = parsed_headers[0]
+
+        response.code = statusline[1]
+        response.headers = headers.decode('utf-8')
+        response.headers_dict = parsed_headers[1]
+        try:
+            content_length = int(response.headers_dict['Content-Length'])
+        except KeyError:
+            content_length = None
+
+        response.body = self.get_body(sock, content_length)
+        # print(response.code)
+        # print(response.headers)
+        # print(response.body)
+        return response 
+
 
     def GET(self, url, args=None):
         code = 500
@@ -158,17 +178,21 @@ class HTTPClient(object):
         self.close()
         return HTTPResponse(code, body)
 
+
     def POST(self, url, args=None):
         code = 500
         body = "empty body"
         return HTTPResponse(code, body)
+
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
             return self.POST(url, args)
         else:
             return self.GET(url, args)
-    
+  
+
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
