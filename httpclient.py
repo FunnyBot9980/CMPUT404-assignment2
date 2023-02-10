@@ -180,14 +180,16 @@ class HTTPClient(object):
         host, ip, port, parsed_url = self.get_host_port(url)
         self.connect(ip, port)
 
-        request = HTTPRequest(ip, host, port, path=parsed_url.path)
+        request = HTTPRequest(ip, host, port)
+        if parsed_url.path != "":
+            request.path = parsed_url.path
         request = request.request_to_str()
-        # print(request)
+        print(request)
         self.sendall(request)
         response = self.recvall(self.socket)
         self.close()
-        # print(response.headers)
-        # print(response.body)
+        print(response.headers)
+        print(response.body)
         return response 
 
 
@@ -195,12 +197,12 @@ class HTTPClient(object):
         host, ip, port, parsed_url = self.get_host_port(url)
         self.connect(ip, port)
 
-        # args = {'a':'aaaaaaaaaaaaa',
-        #         'b':'bbbbbbbbbbbbbbbbbbbbbb',
-        #         'c':'c',
-        #         'd':'012345\r67890\n2321321\n\r'}
+        # for testing args
+        # args = {}
         
-        request = HTTPRequest(ip, host, port, path=parsed_url.path, method='POST', body=parsed_url.query)
+        request = HTTPRequest(ip, host, port, method='POST', body=parsed_url.query)
+        if parsed_url.path != "":
+            request.path = parsed_url.path
         if args != None:
             parsed_args = urlencode(args)
             print(parsed_args)
