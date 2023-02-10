@@ -156,16 +156,10 @@ class HTTPClient(object):
             content_length = None
 
         response.body = self.get_body(sock, content_length)
-        # print(response.code)
-        # print(response.headers)
-        # print(response.body)
         return response 
 
 
     def GET(self, url, args=None):
-        code = 500
-        body = "empty body"
-
         host, ip, port = self.get_host_port(url)
         self.connect(ip, port)
 
@@ -173,10 +167,9 @@ class HTTPClient(object):
         request = request.request_to_str()
         print(request)
         self.sendall(request)
-        data = self.recvall(self.socket)
-        # print(data)
+        response = self.recvall(self.socket)
         self.close()
-        return HTTPResponse(code, body)
+        return response 
 
 
     def POST(self, url, args=None):
@@ -192,7 +185,6 @@ class HTTPClient(object):
             return self.GET(url, args)
   
 
-
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
@@ -201,7 +193,7 @@ if __name__ == "__main__":
         sys.exit(1)
     elif (len(sys.argv) == 3):
         response = client.command( sys.argv[2], sys.argv[1] )
-        # print(response.code, response.body)
+        print(response.headers, response.body)
     else:
         response = client.command( sys.argv[1] )
-        # print(response.code, response.body)
+        print(response.headers, response.body)
