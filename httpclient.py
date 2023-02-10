@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # coding: utf-8
 # Copyright 2023 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust, John Macdonald
 # 
@@ -44,15 +43,13 @@ def help():
 
 
 class HTTPRequest(object):
-    def __init__(self, ip, host, port, method="GET", path="/", accept="text/html", body=""):
+    def __init__(self, ip, host, port, method="GET", path="/", accept="text/html"):
         self.method = method
         self.path = path
         self.ip = ip
         self.host = host
         self.port = port
         self.accept = accept
-        self.body = body
-
 
     def request_to_str(self):
         request = "{} {} {}\r\n".format(self.method, self.path, HTTP_VERSION)
@@ -63,13 +60,12 @@ class HTTPRequest(object):
         request += "User-Agent: {}\r\n".format(USER_AGENT)
         request += "Accept: {}\r\n".format(self.accept)
         request += "\r\n"
-        request += self.body
         return request
 
 
 
 class HTTPResponse(object):
-    def __init__(self, code=200, headers_dict="", headers="", body=""):
+    def __init__(self, code=404, headers_dict="", headers="", body=""):
         self.code = code
         self.headers = headers
         self.headers_dict = headers_dict
@@ -89,7 +85,7 @@ class HTTPClient(object):
             port = 80
         else:
             port = parsed_url.port
-        return (host, ip, port)
+        return (host, ip, port, parsed_url)
 
 
     def connect(self, host, port):
@@ -147,7 +143,9 @@ class HTTPClient(object):
         parsed_headers = self.parse_headers(headers)
         statusline = parsed_headers[0]
 
-        response.code = statusline[1]
+        # print("statusline: ", statusline)
+        # print("statusline[1]: ", statusline[1])
+        response.code = int(statusline[1])
         response.headers = headers.decode('utf-8')
         response.headers_dict = parsed_headers[1]
         try:
@@ -160,15 +158,19 @@ class HTTPClient(object):
 
 
     def GET(self, url, args=None):
-        host, ip, port = self.get_host_port(url)
+        host, ip, port, parsed_url = self.get_host_port(url)
         self.connect(ip, port)
 
-        request = HTTPRequest(ip, host, port)
+        print("PATH: ", parsed_url.path)
+        request = HTTPRequest(ip, host, port, path=parsed_url.path)
         request = request.request_to_str()
-        print(request)
+        # print(request)
         self.sendall(request)
         response = self.recvall(self.socket)
         self.close()
+        # print(response.code)
+        # print(response.headers)
+        # print(response.body)
         return response 
 
 
@@ -193,7 +195,7 @@ if __name__ == "__main__":
         sys.exit(1)
     elif (len(sys.argv) == 3):
         response = client.command( sys.argv[2], sys.argv[1] )
-        print(response.headers, response.body)
+        # print(response.code, response.body)
     else:
         response = client.command( sys.argv[1] )
-        print(response.headers, response.body)
+        # print(response.code, response.body)
